@@ -1,0 +1,179 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Particles SNF</title>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
+    ></script>
+    <style>
+      body {
+        margin: 0px;
+        padding: 0px;
+      }
+
+      canvas {
+        position: absolute;
+        display: block;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      window.addEventListener("load", checkJSLoaded);
+
+      function checkJSLoaded() {
+        const { random, atan2, cos, sin, hypot } = Math;
+        const max = 5000;
+        const canvas = document.createElement("canvas");
+        const $ = canvas.getContext("2d");
+        const body = document.body;
+        const particles = [];
+        const stars = [];
+        const starCount = 150;
+
+        body.style.backgroundColor = "black";
+        body.style.overflow = "hidden";
+        body.appendChild(canvas);
+
+        let width = (canvas.width = window.innerWidth);
+        let height = (canvas.height = window.innerHeight);
+        let point = { x: width / 2, y: height / 2 };
+        let hue = 5;
+
+        function Star() {
+          this.x = random() * width;
+          this.y = random() * height;
+          this.size = random() * 2;
+          this.alpha = random() * 0.8 + 0.2;
+          this.twinkleSpeed = random() * 0.05 + 0.02;
+        }
+
+        Star.prototype.draw = function () {
+          $.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+          $.beginPath();
+          $.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          $.fill();
+        };
+
+        Star.prototype.update = function () {
+          this.alpha += this.twinkleSpeed * (random() > 0.5 ? 1 : -1);
+          if (this.alpha > 1) this.alpha = 1;
+          if (this.alpha < 0) this.alpha = 0;
+        };
+
+        // Add star field
+        for (let i = 0; i < starCount; i++) {
+          stars.push(new Star());
+        }
+
+        function Particle() {}
+
+        Particle.prototype = {
+          init() {
+            this.hue = hue;
+            this.alpha = 0;
+            this.size = this.random(1.9, 5);
+            this.x = this.random(5, width);
+            this.y = this.random(5, height);
+            this.velocity = this.size * 15;
+            this.changed = null;
+            this.changedFrame = 1;
+            this.maxChangedFrames = 50;
+            return this;
+          },
+          draw() {
+            $.strokeStyle = "hsl(" + 5000 * Math.random() + ", 150%, 50%)";
+            $.beginPath();
+            $.arc(this.x, this.y, this.size, 0.2, 0.2 * Math.PI);
+            $.stroke();
+            this.update();
+          },
+          update() {
+            if (this.changed) {
+              this.alpha *= 0.92;
+              this.size += 0.05;
+              this.changedFrame++;
+              if (this.changedFrame > this.maxChangedFrames) {
+                this.reset();
+              }
+            } else if (this.distance(point.x, point.y) < 50) {
+              this.changed = true;
+            } else {
+              let dx = point.x - this.x;
+              let dy = point.y - this.y;
+              let angle = atan2(dy, dx);
+
+              this.alpha += 0.1;
+              this.x += this.velocity * cos(angle);
+              this.y += this.velocity * sin(angle);
+              this.velocity += 25;
+            }
+          },
+          reset() {
+            this.init();
+          },
+          distance(x, y) {
+            return hypot(x - this.x, y - this.y);
+          },
+          random(min, max) {
+            return random() * (max - min) + min;
+          },
+        };
+
+        function animate() {
+          // Draw background and stars
+          $.fillStyle = "rgba(0, 0, 0, 0.3)";
+          $.fillRect(0, 0, width, height);
+
+          stars.forEach((star) => {
+            star.update();
+            star.draw();
+          });
+
+          particles.forEach((p) => {
+            p.draw();
+          });
+          hue += 5;
+          window.requestAnimationFrame(animate);
+        }
+
+        // Handle mouse/touch interactions
+        function touches(e) {
+          point.x = e.touches ? e.touches[0].clientX : e.clientX;
+          point.y = e.touches ? e.touches[0].clientY : e.clientY;
+        }
+
+        function setup() {
+          // Create particles
+          for (let i = 0; i < max; i++) {
+            setTimeout(() => {
+              let p = new Particle().init();
+              particles.push(p);
+            }, i * 5);
+          }
+
+          canvas.addEventListener("mousemove", touches);
+          canvas.addEventListener("touchmove", touches);
+          canvas.addEventListener("mouseleave", () => {
+            point = { x: width / 2, y: height / 2 };
+          });
+          window.addEventListener("resize", () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            point = { x: width / 2, y: height / 2 };
+          });
+
+          animate();
+        }
+
+        setup();
+      }
+    </script>
+  </body>
+</html>
